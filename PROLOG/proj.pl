@@ -4,7 +4,7 @@
 
 dodaj_obiekt(Nazwa, X, Y, Z, Szerokosc, Wysokosc) :-
   \+ czy_istnieje(Nazwa),
-  \+ wspolrzedne(_, X, Y, Z).
+  \+ wspolrzedne(_, X, Y, Z),
   assertz(rozmiar(Nazwa, Szerokosc, Wysokosc)),
   assertz(w(Nazwa, pokoj)),
   assertz(wspolrzedne(Nazwa, X,Y,Z)),
@@ -14,7 +14,43 @@ czy_istnieje(Obiekt) :-
   w(Obiekt, pokoj).
 
 
+ruch_dxy(DX, DY) :-
+    member((DX, DY), [(1,0), (-1,0), (0,1), (0,-1)]).
 
+sasiednie_pola(Cel, Lista) :-
+    wspolrzedne(Cel, X, Y, Z),
+    findall((NX, NY),
+            (ruch_dxy(DX, DY),
+             NX is X + DX,
+             NY is Y + DY,
+             mozna_wejsc(NX, NY, Z)),
+            Lista).
+
+idz_obok(Cel) :-
+    czy_istnieje(Cel),
+    wspolrzedne(mysz, MX, MY, _),
+    sasiednie_pola(Cel, Sasiedzi),
+    member((TX, TY), Sasiedzi),
+    krok_do(MX, MY, TX, TY, DX, DY),
+    przesun_obiekt(mysz, DX, DY, 0),
+    write('mysz się porusza w stronę '), write((TX,TY)), nl,
+    write('mysz jest na '), write((MX, MY)), nl,
+    (obok(mysz, Cel) ->
+        write('mysz jest obok!'), nl
+    ;
+        idz_obok(Cel)
+    ).
+
+krok_do(MX, MY, TX, TY, DX, DY) :-
+    DX is sign(TX - MX),
+    DY is sign(TY - MY).
+
+czy_kolizja_xyz(X, Y, Z, Obiekt) :-
+    wspolrzedne(Obiekt, X0, Y0, Z0),
+    rozmiar(Obiekt, DX, DY),
+    X >= X0, X < X0 + DX,
+    Y >= Y0, Y < Y0 + DY,
+    Z =:= Z0.
 
 przesun_obiekt(Obiekt, DX, DY, DZ) :-
     wspolrzedne(Obiekt, X0, Y0, Z0),
@@ -27,13 +63,6 @@ przesun_obiekt(Obiekt, DX, DY, DZ) :-
     czy_nie_wychodzi_za_pokoj(Obiekt).
 
 
-ruch(X, Y, NX, NY) :-
-  member(DX, [-1, 0, 1]),
-  member(DY, [-1, 0, 1]),
-  (DX =\= 0 ; DY =\= 0),
-    NX is X + DX,
-    NY is Y + DY.
-
 mozna_wejsc(X,Y, Z) :-
   \+ (czy_kolizja_xyz(X,Y,Z, Inny), Inny \= mysz),
   wspolrzedne(pokoj, XP, YP, _),
@@ -42,14 +71,6 @@ mozna_wejsc(X,Y, Z) :-
   Y >= YP, Y < DY + YP.
 
 
-wykonaj_ruch(1,0) :- idz_prawo.
-wykonaj_ruch(-1, 0) :- idz_lewo.
-wykonaj_ruch(0, 1) :- idz_gora.
-wykonaj_ruch(0, -1) :- idz_dol.
-wykonaj_ruch(1, 1) :- idz_prawo, idz_gora.
-wykonaj_ruch(-1, 1) :- idz_lewo, idz_gora.
-wykonaj_ruch(1, -1) :- idz_prawo, idz_dol.
-wykonaj_ruch(-1, -1) :- idz_lewo, idz_dol.
 
 w(lozko, pokoj).
 w(monitor1, pokoj).
@@ -222,7 +243,7 @@ obok(Obiekt1, Obiekt2) :-
         (X1 + DX1 =:= X2 ; X2 + DX2 =:= X1)
     ;
         zakresy_sie_pokrywaja(X1, DX1, X2, DX2),
-        (Y1 + DY2 =:= Y2 ; Y2 + DY2 =:= Y1)
+        (Y1 + DY1 =:= Y2 ; Y2 + DY2 =:= Y1)
     ).
 
 
